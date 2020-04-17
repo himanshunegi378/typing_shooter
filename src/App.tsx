@@ -2,12 +2,15 @@ import React from "react";
 import "./App.css";
 import Shooter from "./components/shooter_game/shooter";
 import Practice from "./components/socket_practice/practice";
-
-function App() {
+import Room_View from './components/room/room_view';
+import 'bootstrap/dist/css/bootstrap.min.css'
+import GameView from './components/game_view/game_view';
+function App()
+{
     return (
         <div className="App">
-            <Shooter/>
-            <Practice/>
+            <GameView />
+            <Room_View />
         </div>
     );
 }

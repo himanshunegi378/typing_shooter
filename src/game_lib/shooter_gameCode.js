@@ -15,7 +15,8 @@ var pBullets, eBullets;
 var enemies, bParticles, w_delay;
 var canvas;
 var e;
-var events = require('events');
+var isAlive = true;
+var events = require("events");
 e = new events.EventEmitter();
 
 ///////////////////////////////////////////////////
@@ -205,9 +206,8 @@ class Particle {
 
 ///////////////////////////////////////////////////
 
-export function init(_canvas, _ctx) {
+function init(_canvas, _ctx) {
   // load canvas
-
 
   canvas = _canvas;
   ctx = _ctx;
@@ -243,6 +243,7 @@ export function init(_canvas, _ctx) {
 
   // keydown functions
   function onKeyDown(event) {
+    e.emit("key_pressed", event.keyCode);
     keyState[event.keyCode] = true;
     console.log(event.keyCode);
   }
@@ -276,16 +277,15 @@ export function init(_canvas, _ctx) {
         player.getHit();
       }
     });
-    pBullets.forEach(function (playerBullet) {
-      eBullets.forEach(function (enemyBullet) {
-            if(collisionCheck(playerBullet,enemyBullet)){
-              enemyBullet.die();
-              playerBullet.die();
-              return;
-            }
-      })
-
-    })
+    pBullets.forEach(function(playerBullet) {
+      eBullets.forEach(function(enemyBullet) {
+        if (collisionCheck(playerBullet, enemyBullet)) {
+          enemyBullet.die();
+          playerBullet.die();
+          return;
+        }
+      });
+    });
     // pBullets.forEach(function(bullet) {
     //   enemies.forEach(function(enemy) {
     //     if (collisionCheck(bullet, enemy)) {
@@ -384,7 +384,6 @@ export function init(_canvas, _ctx) {
 
     // collision
     collisionOccurs();
-
   }
 
   function draw() {
@@ -410,8 +409,9 @@ export function init(_canvas, _ctx) {
     });
 
     // game over
-    if (player.getHP() <= 0) {
-      e.emit('game_over');
+    if ((player.getHP() <= 0) & isAlive) {
+      isAlive = !isAlive;
+      e.emit("player_died");
       ctx.font = "20pt Calibri";
       ctx.fillStyle = "white";
       ctx.fillText("Game Over", 170, 220);
@@ -426,15 +426,18 @@ export function init(_canvas, _ctx) {
   ///////////////////////////////////////////////////
 }
 
-export function shoot() {
+function shoot() {
   player.shoot(7, pBullets);
 }
 
-export function enemyShoot() {
+function enemyShoot() {
   enemyPlayer.shoot(-7, eBullets);
-
 }
 
-export function event(){
-  return e;
-}
+e.on("player_shoot", () => shoot());
+e.on("enemy_shoot", () => enemyShoot());
+e.on("new_game", (canvas, ctx) => {
+  init(canvas, ctx);
+});
+
+export { e };

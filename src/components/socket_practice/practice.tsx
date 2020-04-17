@@ -1,8 +1,10 @@
 import React, { Component } from "react";
-import io from "socket.io-client";
 import { transport } from "../../utils/axios_facade";
 import { AxiosInstance } from "axios";
-import { enemyShoot, shoot } from "../shooter_game/lib/shooter_gameCode";
+import { enemyShoot, event, shoot } from "../shooter_game/lib/shooter_gameCode";
+import socket from "../../socket_logic";
+import TextHighlighter from "../text_highlighter/text_highlighter";
+import Color from "color";
 
 interface IProps {}
 
@@ -14,11 +16,18 @@ interface IState {
   current_joined_room?: string; //room to which player is currently joined
   roomName_input?: string; //name of the room that the user want to join
   game_text?: string; // text that user will type
+  raw_game_text?: string;
   text_pos?: number; //letter to type in game_text
+  game_over?: boolean; // tell if the match has ended or not
+  highlight_color?: Color; // color to be used for highlighting the text
+}
+
+enum colors {
+  rightColor = "#FFFF00",
+  wrongColor = "#FF0000"
 }
 
 class Practice extends Component<IProps, IState> {
-  private socket!: SocketIOClient.Socket;
   private axios_instance!: AxiosInstance;
   private regexp!: RegExp;
 
@@ -31,41 +40,49 @@ class Practice extends Component<IProps, IState> {
       roomName_input: "",
       game_text: "NA",
       char_input: "",
-      text_pos: 0
+      text_pos: 0,
+      game_over: false
     };
   }
 
   componentDidMount(): void {
     this.init();
     this.axios_instance = transport;
-    this.regexp = new RegExp("^[a-zA-Z0-9 ]+$"); //to accept small and capital letter and numbers
+    this.regexp = new RegExp("^[a-zA-Z0-9 .]+$"); //to accept small and capital letter and numbers
   }
 
   /**
    * @description initialize the socket and define the socket event
    */
   init = () => {
-    this.socket = io.connect("http://192.168.0.6:8000");
-    this.socket.on("enemy_key", (key: string) => {
+    socket.on("enemy_key", (key: string) => {
       this.setState({ enemy_key: this.state.enemy_key?.concat(key) });
     });
     /**
      * @desc it receives a text that the user will type to compete
      */
-    this.socket.on("game_text", (text: string) => {
-      let newString: string = "";
-      for (let i = 0; i < text.length; i++) {
-        newString = newString.concat(`<span>${text.charAt(i)}</span>`);
-      }
-      document.getElementById("game_text")!.innerHTML = newString;
-      this.setState({ game_text: newString });
+    socket.on("game_text", (text: string) => {
+      this.setState({ raw_game_text: text });
     });
 
-    this.socket.on("shoot_order", function() {
+    socket.on("shoot_order", function() {
       shoot();
     });
-    this.socket.on("enemy_shoot_order", function() {
+    socket.on("enemy_shoot_order", function() {
       enemyShoot();
+    });
+    socket.on("correct_char_input", (isCorrect: boolean) => {
+      if (isCorrect) {
+        this.setState({ highlight_color: Color(colors.rightColor) ,text_pos: (this.state.text_pos as number) + 1 });
+      } else {
+        this.setState({ highlight_color: Color(colors.wrongColor),text_pos: (this.state.text_pos as number) + 1  });
+      }
+    });
+
+    ///////////////
+    event().on("game_over", () => {
+      // socket.emit("game_over", socket.id, this.state.current_joined_room);
+      this.setState({ game_over: true });
     });
   };
 
@@ -78,12 +95,12 @@ class Practice extends Component<IProps, IState> {
    */
   joinRoom = (roomName: string) => {
     if (!this.isInRoom()) {
-      this.socket.emit("subscribe", roomName);
-      console.log(this.socket.id);
+      socket.emit("subscribe", roomName);
+      console.log(socket.id);
     } else {
       this.leaveRoom();
-      this.socket.emit("subscribe", roomName);
-      console.log(this.socket.id);
+      socket.emit("subscribe", roomName);
+      console.log(socket.id);
     }
     this.setState({ current_joined_room: roomName });
   };
@@ -98,7 +115,7 @@ class Practice extends Component<IProps, IState> {
    */
   leaveRoom = () => {
     if (this.isInRoom()) {
-      this.socket.emit("unsubscribe", this.state.current_joined_room);
+      socket.emit("unsubscribe", this.state.current_joined_room);
       this.setState({ current_joined_room: "" });
     }
   };
@@ -106,7 +123,7 @@ class Practice extends Component<IProps, IState> {
   keyPress = (event: React.KeyboardEvent<HTMLInputElement>) => {
     // console.log(event.key)
     if (this.regexp.test(event.key)) {
-      this.socket.emit("key_res", event.key, "gang");
+      socket.emit("key_res", event.key, "gang");
     }
   };
   /**
@@ -137,12 +154,7 @@ class Practice extends Component<IProps, IState> {
   };
 
   sendCharToServer = (char: string) => {
-    this.socket.emit(
-      "char_input",
-      this.socket.id,
-      this.state.current_joined_room,
-      char
-    );
+    socket.emit("char_input", socket.id, this.state.current_joined_room, char);
   };
 
   /**
@@ -157,23 +169,24 @@ class Practice extends Component<IProps, IState> {
       this.setState({ [event.currentTarget.name]: lastChar });
       if (this.isInRoom()) {
         this.sendCharToServer(lastChar);
-        let game_text_span = document.getElementById("game_text");
-        let letters = game_text_span!.getElementsByTagName("span");
-        for (let i = 0; i < letters.length; i++) {
-          if (this.state.text_pos === i) {
-            let singleLettter = letters[i].innerText;
-            letters[i].style.backgroundColor = '#FFFF00'
-            letters[i].innerHTML = `${singleLettter}`;
-          }
-        }
-        this.incrementPos();
+
       }
     }
+  };
+
+  restart = () => {
+    socket.emit("restart", this.state.current_joined_room);
+    this.setState({ text_pos: 0, game_over: false });
   };
 
   render() {
     return (
       <div>
+        <TextHighlighter
+          text={this.state.raw_game_text}
+          index={this.state.text_pos! - 1}
+          color={this.state.highlight_color}
+        />
         <div>
           <form onSubmit={this.roomName_submit}>
             <label>Room name: </label>
@@ -186,10 +199,12 @@ class Practice extends Component<IProps, IState> {
           </form>
         </div>
 
-        <div
-          style={{ fontSize: "20px", fontWeight: "bold" }}
-          id={"game_text"}
-        ></div>
+
+        <div>
+          {this.state.game_over === true ? (
+            <input type="button" onClick={this.restart} value="restart" />
+          ) : null}
+        </div>
 
         <div>
           <input
@@ -199,6 +214,13 @@ class Practice extends Component<IProps, IState> {
             value={this.state.char_input}
           />
         </div>
+        <div>
+            <input type="button" onClick={()=>socket.emit('create_room','gang',socket.id)} value="join Room" />
+        </div>
+        <div>
+            <input type="button" onClick={()=>socket.emit('leave_room','gang',socket.id)} value="leave Room" />
+        </div>
+
       </div>
     );
   }

@@ -1,15 +1,11 @@
-import React, { Component } from "react";
-import "./style.css";
-// @ts-ignore
-import { init } from "./lib/shooter_gameCode";
+import React, { Component } from 'react'
+import Room_View from '../room/room_view'
+import Shooter from '../shooter_game/shooter'
 // @ts-ignore
 import { e } from "../../game_lib/shooter_gameCode";
 import { game_room } from "../../server/GameRoom";
-
-export class Shooter extends Component
+export default class GameView extends Component
 {
-
-
     componentDidMount(): void
     {
         const canvas = document.getElementById("canvas");
@@ -26,7 +22,9 @@ export class Shooter extends Component
         }
         //@ts-ignore
         game_room.changeGame(e)
-       
+        //@ts-ignore
+        e.emit('new_game', canvas, ctx)
+
 
 
     }
@@ -38,13 +36,14 @@ export class Shooter extends Component
             <>
                 <link rel="stylesheet" href="./style.css" />
                 <div id='canvas_block'>
-                    <canvas id="canvas" tabIndex={0} />
+                    <canvas id="canvas" style={{
+                        margin: 'auto',
+                        display: 'block',
+                        backgroundColor: "#070719"
+                    }} tabIndex={0} />
                 </div>
-                {/*<script src="./lib/shooter_gameCode.js"></script>*/}
 
             </>
         );
     }
 }
-
-export default Shooter;
