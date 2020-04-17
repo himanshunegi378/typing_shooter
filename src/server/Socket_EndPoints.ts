@@ -77,7 +77,6 @@ class Socket_EndPoints implements ISocket_Endpoints
         return isRoom_left;
     }
 
-    public key_pressed
 
     // #endregion Public Methods (6)
 
