@@ -32,9 +32,7 @@ export class Game
         // this.game_event.on('player_died',)
     }
 
-    key_pressed = (keycode:string){
-        
-    }
+   
 
     // #endregion Public Methods (1)
 }
