@@ -4,6 +4,8 @@ import Shooter from '../shooter_game/shooter';
 //@ts-ignore
 import { e } from '../../game_lib/shooter_gameCode';
 import { game_room } from '../../server/GameRoom';
+import { EventEmitter } from 'events';
+import { attach_room_event } from '../../server/socket_endpoint';
 
 interface IProps { }
 interface IState
@@ -13,10 +15,14 @@ interface IState
 }
 
 export class Room_View extends Component<IProps, IState> {
+    private room_event: EventEmitter;
     constructor(props: IProps)
     {
         super(props);
         this.state = {}
+        this.room_event = new EventEmitter();
+        attach_room_event(this.room_event);
+
     }
 
     componentDidMount(){
@@ -30,7 +36,8 @@ export class Room_View extends Component<IProps, IState> {
         if (this.state.tobe_joined_room_name)
         {
             console.log(this.state.tobe_joined_room_name)
-            game_room.join_room(this.state.tobe_joined_room_name)
+            // game_room.join_room(this.state.tobe_joined_room_name)
+            this.room_event.emit('join_room',this.state.tobe_joined_room_name)
             this.setState({ tobe_joined_room_name: '' })
         }
     }
@@ -42,7 +49,8 @@ export class Room_View extends Component<IProps, IState> {
         if (this.state.tobe_created_room_name)
         {
             console.log(this.state.tobe_created_room_name)
-            game_room.create_room(this.state.tobe_created_room_name)
+            // game_room.create_room(this.state.tobe_created_room_name)
+            this.room_event.emit('create_room',this.state.tobe_created_room_name)
             this.setState({ tobe_created_room_name: '' })
         }
     }
