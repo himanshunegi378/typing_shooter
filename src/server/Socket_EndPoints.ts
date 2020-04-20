@@ -18,7 +18,7 @@ class Socket_EndPoints implements ISocket_Endpoints
 
     constructor()
     {
-        this.connect(this.url)
+        // this.connect(this.url)
     }
 
     // #endregion Constructors (1)

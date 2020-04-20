@@ -1,5 +1,5 @@
 import { EventEmitter } from "events";
-import { endpoints } from "./Socket_EndPoints";
+// import { endpoints } from "./Socket_EndPoints";
 import { game_events_name } from "./game_events_name";
 import { server_instance } from ".";
 
@@ -27,8 +27,8 @@ export class Game
     public change_gameEvent(gameEvent: EventEmitter)
     {
         this.game_event = gameEvent;
-        this.game_event.on(game_events_name.increase_score, endpoints.increase_score)
-        this.game_event.on(game_events_name.decrease_score, endpoints.decrease_score)
+        // this.game_event.on(game_events_name.increase_score, endpoints.increase_score)
+        // this.game_event.on(game_events_name.decrease_score, endpoints.decrease_score)
         // this.game_event.on('player_died',)
     }
 
